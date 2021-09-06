@@ -54,10 +54,15 @@ bool ObjLeftDetect::process(myImage * input)
 	IplImage * test; test = cvCreateImage(cvSize(new_width, new_height),8,3);
 	set_alarm = false;
 	myResize(input,myimg2);	
+
+	// 检测移动物体
 	object_detected = _CBM_model->Motion_Detection(myimg2);
+
+
 	if (object_detected == true)
 	{		
 		ObjLocation = _CBM_model->GetDetectResult();	
+
 		LeftLocation = _CBM_model->GetStaticForegourdResult();
 			
 		if (LeftLocation.size()>0)
@@ -100,7 +105,7 @@ bool ObjLeftDetect::soft_validation3( myImage * ImgSynopsis, vector<Obj_info*> o
 	int temporal_rule = BUFFER_LENGTH;
 	int retreval_time = temporal_rule/2 + temporal_rule/6;
 
-	bool ** ForeSynopsis;
+	bool ** ForeSynopsis=nullptr;
 	ForeSynopsis = (bool **)malloc(new_width*sizeof(bool *));
 	for (int i = 0; i < new_width; i++){
 		ForeSynopsis[i] = (bool *)malloc(new_height*sizeof(bool));
@@ -111,7 +116,7 @@ bool ObjLeftDetect::soft_validation3( myImage * ImgSynopsis, vector<Obj_info*> o
 		}
 	}
 
-	int ** floodfillMap;
+	int ** floodfillMap= NULL;
 	floodfillMap = (int **)malloc(new_width*sizeof(int *));
 	for (int i = 0; i < new_width; i++){
 		floodfillMap[i] = (int *)malloc(new_height*sizeof(int));
@@ -137,6 +142,7 @@ bool ObjLeftDetect::soft_validation3( myImage * ImgSynopsis, vector<Obj_info*> o
 			{
 				for (int n = 0; n < obj_left.size(); n++)
 				{
+					// 找到遗留下来目标物的距离
 					float owner_dist = point_dist( (float)j, (float)k, (float)obj_left.at(n)->x, (float)obj_left.at(n)->y);
 					if (owner_dist<OWNER_SEARCH_ROI)//distance threshold
 					{
@@ -164,7 +170,8 @@ bool ObjLeftDetect::soft_validation3( myImage * ImgSynopsis, vector<Obj_info*> o
 
 	//else if we found foregournd object, it must be the owner, than we extract the color information of further processing 
 
-	myFloatColor ** obj_colors;
+	myFloatColor ** obj_colors=NULL;
+	int obj_left_size = obj_left.size();
 	obj_colors = (myFloatColor **)malloc(obj_left.size()*sizeof(myFloatColor *));
 	for (int i = 0; i < obj_left.size(); i++)
 		obj_colors[i] = (myFloatColor *)malloc(10*sizeof(myFloatColor));
@@ -252,13 +259,13 @@ bool ObjLeftDetect::soft_validation3( myImage * ImgSynopsis, vector<Obj_info*> o
 	/************************************************************************/
 	for (int t = (retreval_time-1); t>=2; t--)
 	{
-		//_CBM_model->DetectPrevious_nForeground_HOG(t);
-		//_CBM_model->DetectPrevious_nForeground_DPM(t);
+		/*_CBM_model->DetectPrevious_nForeground_HOG(t);
+		_CBM_model->DetectPrevious_nForeground_DPM(t);*/
 	}
 
 
 	/************************************************************************/
-	/* use mounatin climbing algorithm to extract the candidate trajectory   */
+	/* use mountain climbing algorithm to extract the candidate trajectory   */
 	/************************************************************************/
 	for (int n = 0; n < obj_left.size(); n++)
 	{
@@ -318,13 +325,36 @@ bool ObjLeftDetect::soft_validation3( myImage * ImgSynopsis, vector<Obj_info*> o
 	cvWaitKey(1);
 	cvReleaseImage(&temp2);
 
-	free(*ForeSynopsis);
-	free(ForeSynopsis);
-	free(*floodfillMap);
-	free(floodfillMap);
+	if (ForeSynopsis != NULL)
+	{
+		for (int i = 0; i < new_width; i++)
+		{
+			free(ForeSynopsis[i]);
+		}
+		free(ForeSynopsis);
+		ForeSynopsis = NULL;
+	}
 
-	free(*obj_colors);
-	free(obj_colors);
+
+	if (floodfillMap!=NULL)
+	{
+		for (int i=0; i < new_width; i++)
+		{
+			free(floodfillMap[i]);
+		}
+		free(floodfillMap);
+		floodfillMap = nullptr;
+	}
+	
+	if (obj_colors!=nullptr)
+	{
+		for (int i= 0; i< obj_left_size; i++)
+		{
+			free(obj_colors[i]);
+		}
+		free(obj_colors);
+		obj_colors = nullptr;
+	}
 
 	return _set_alarm;
 }

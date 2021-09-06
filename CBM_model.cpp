@@ -134,15 +134,20 @@ void CBM_model::System_Reset()
 
 bool CBM_model::Motion_Detection(myImage *img)
 {
+
+
  	myResize(img, _Previous_Img[FG_count]);
 
 	if( frame_count < MOG_LEARN_FRAMES){
 		printf("update mog %d\n",MOG_LEARN_FRAMES-frame_count);
 
+		// 按照每个像素位遍历初始化背景模型
 		if (frame_count==0){
+
 			_myGMM->initial(_Previous_Img[FG_count]);
 			_myGMM2->initial(_Previous_Img[FG_count]);
 		}
+		// 长背景，2是短背景, process 用高斯方法获得二值图0， 0r 255
 		_myGMM->process(_Previous_Img[FG_count],my_mog_fg);
 		_myGMM2->process(_Previous_Img[FG_count],my_mog_fg2);
 
@@ -162,11 +167,14 @@ bool CBM_model::Motion_Detection(myImage *img)
 		//printf("start detect\n");
 		//***MOG model***//
 		_myGMM->process(_Previous_Img[FG_count],input_temp);
+
+		// 输入图像的按照pixel值进行 与操作
 		myImageAND(input_temp,maskROI,my_mog_fg);
 
 		_myGMM2->process(_Previous_Img[FG_count],input_temp);
 		myImageAND(input_temp,maskROI,my_mog_fg2);
 
+		//用三的核进行形态学操作
 		myDiladeitself( my_mog_fg, 3);
 		myDiladeitself( my_mog_fg2, 3);
 
@@ -176,12 +184,16 @@ bool CBM_model::Motion_Detection(myImage *img)
 		else{
 			_myGMM->ChangeLearningRate(0.0001);//defult long-term model learning rate
 		}
+		
+		// 有限状态机，针对每一个pixel，进行状态赋值，存到Previous_FG 指向的空间
+		myFSM( my_mog_fg2, my_mog_fg, imageFSM, Previous_FG);
 
-		myFSM( my_mog_fg2, my_mog_fg, imageFSM, Previous_FG);	
+		// 将候选和确定的前景画色
 		myConvertFSM2Img( imageFSM, my_imgCandiStatic, my_imgStatic);
 
 		staticFG_pixel_num_pre2 = staticFG_pixel_num_pre;
 		staticFG_pixel_num_pre = staticFG_pixel_num_now;
+		// 返回前景的目标计数
 		staticFG_pixel_num_now = check_foreground2(my_imgStatic);
 
  		myImage_2_opencv(my_imgStatic,imgStatic);
@@ -544,19 +556,23 @@ void CBM_model::DetectPrevious_nForeground_HOG( int n)
 	cv::waitKey(1);
 }
 
+// pixel based finite status machine
 void CBM_model::myFSM(myImage *short_term, myImage *long_term, pixelFSM ** imageFSM, bool *** Previous_FG)
 {
 	myColor buffer[2];
 	#pragma omp parallel for
 	for (int i = 0; i < new_width; i++){
 		for (int j = 0; j < new_height; j++){
+			// 分别获得短长模型的 B G R' 的值
 			buffer[0] = myGet2D(short_term,i,j);
 			buffer[1] = myGet2D(long_term,i,j);
 
 			imageFSM[i][j].state_pre = imageFSM[i][j].state_now;
 			imageFSM[i][j].state_now = 0;
 
+			//先判断短模型的像素值
 			if ((buffer[0].B==255)&&(buffer[0].G==255)&&(buffer[0].R==255)){
+				// 判断为前景
 				imageFSM[i][j].state_now += 2;
 			} 
 			else{
@@ -570,7 +586,8 @@ void CBM_model::myFSM(myImage *short_term, myImage *long_term, pixelFSM ** image
 				imageFSM[i][j].state_now = 0;
 			}
 
-			if ((imageFSM[i][j].state_now==1)&&(imageFSM[i][j].state_pre==1)){			
+			if ((imageFSM[i][j].state_now==1)&&(imageFSM[i][j].state_pre==1))
+			{			
 				if (imageFSM[i][j].static_count==(TEMPORAL_RULE/2)){
 					imageFSM[i][j].staticFG_stable = true;
 				}			
@@ -621,8 +638,12 @@ void CBM_model::myConvertFSM2Img(pixelFSM **Array, myImage *Candidate_Fg, myImag
 	color1.B = 0; color1.G = 0; color1.R = 255;
 	color2.B = 0; color2.G = 200; color2.R = 255;
 	#pragma omp parallel for	
+
+
 	for (int i = 0; i < new_width; i++){
 		for (int j = 0; j < new_height; j++){
+
+			// 如果可能是候选，则将该像素点变红
 			if ( Array[i][j].staticFG_candidate == true )
 				mySet2D(Candidate_Fg,color1,i,j);
 			else{
@@ -641,6 +662,7 @@ void CBM_model::myConvertFSM2Img(pixelFSM **Array, myImage *Candidate_Fg, myImag
 }
 
 
+//
 int CBM_model::check_foreground2( myImage * img)
 {
 	int foregroud = 0;
@@ -650,6 +672,7 @@ int CBM_model::check_foreground2( myImage * img)
 		for (int j = 0; j < img->height; j++)
 		{
 			a = myGet2D(img, i, j);
+			//有前景目标，累计前景计数
 			if ((a.B >= 100)||(a.G >= 100)||(a.R >= 100))
 			{
 				foregroud++;

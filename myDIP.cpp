@@ -74,6 +74,7 @@ void myImageAND(myImage * input1, myImage * input2, myImage * output)
         printf("[Error] myImageAND:  height and width cannot match\n"); 
         system("pause"); 
     } 
+
     int width = input1->width; 
     int height = input1->height; 
     int depth = input1->depth; 

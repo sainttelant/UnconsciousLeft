@@ -136,6 +136,7 @@ public:
 	bool myClustering2( myImage *img, int option);//option: 0 for moving obj, 1 for static obj
 	int GetLabeling2( myImage *pImg1, int areaThreshold, int option); //option: 0 for moving obj, 1 for static obj
 
+	//这个就是混合短长背景的有限状态机
 	void myFSM(myImage *short_term, myImage *long_term, pixelFSM ** imageFSM, bool *** Previous_FG);
 	void myConvert2Img(bool **Array, myImage *output);
 	void myConvertFSM2Img(pixelFSM **Array, myImage *Candidate_Fg, myImage *Static_Fg);

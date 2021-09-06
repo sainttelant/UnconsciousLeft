@@ -91,6 +91,8 @@
 		//Some constants for the algorithm
 		double pi;
 		double cthr;
+
+		// 长短模型的学习率，长短为10倍的关系，也未必
 		double alpha;
 		double cT;
 		double covariance0;
@@ -128,8 +130,13 @@
 		//main founction of GMM
 		myGMM(double LearningRate);
 		~myGMM();
+		// 高斯变换获得二值图
+
 		void process(myImage* inputRGB, myImage* outputBIN);
+
+		// 按照每个像素位初始化 background models
 		void initial(myImage* inputRGB);
+		// learning rate much smaller, learing more fast
 		void ChangeLearningRate(float new_learn_rate);
 
 #ifdef USE_OPENCV

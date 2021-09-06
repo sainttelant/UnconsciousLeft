@@ -65,6 +65,8 @@ void myImageAND(myImage * input1, myImage * input2, myImage * output);
 void myRGB2Gray(myImage  * input, myImage * output); 
 void myImageCopy(myImage * input, myImage * output); 
 void myImageZero(myImage * input); 
+
+// »ñµÃÏñËØµÄBGR values
 myColor myGet2D(myImage * input, int x, int y); 
 void mySet2D(myImage * input, myColor colors, int x, int y); 
   

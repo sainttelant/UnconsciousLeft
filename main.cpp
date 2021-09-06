@@ -95,6 +95,7 @@ int main()
 	}
 	for (int i = 0; i < 10; i++ ){
 		fscanf( InputFile, "%lf", &readData[i]);
+		printf("read parameters:%d is  %f \n", i,(float)readData[i]);
 	}
 	fclose(InputFile);
 	for (int i = 0; i < 10; i++)

@@ -69,6 +69,7 @@ myGMM::myGMM(double LearningRate)
 
 }
 
+
 void myGMM::initial(myImage * inputRGB)
 {
 	for (int i = 0; i < inputRGB->height; i++)
@@ -77,6 +78,7 @@ void myGMM::initial(myImage * inputRGB)
 		{
 			myColor colors;
 			colors = myGet2D(inputRGB,j,i);
+
 			XwNode * N_ptr = Create_Node((double)colors.B,(double)colors.G,(double)colors.R);
 			if( N_ptr != NULL ){
 				N_ptr->pixel_s->weight = 1.0;
